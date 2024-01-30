@@ -1,17 +1,24 @@
 import json
 import shutil
 from datetime import datetime, timezone, timedelta
-
+from bs4 import BeautifulSoup
+from googletrans import Translator
 import scrapy
 import feedparser
+import time
 
-def to_timestamp(dt_str):
-    dt = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S+00:00")
-    dt = dt.replace(tzinfo=timezone.utc)
-    return int(dt.timestamp())
+
+def convert_to_timestamp(published_parsed):
+    return int(time.mktime(published_parsed))
+
 
 def get_current_ts():
     return int(datetime.now().replace(tzinfo=timezone.utc).timestamp())
+
+
+def strip_html_tags(text):
+    return BeautifulSoup(text, "html.parser").get_text(separator=' ', strip=True)
+
 
 class RSSSpider(scrapy.Spider):
     name = "rss"
@@ -30,6 +37,8 @@ class RSSSpider(scrapy.Spider):
         hours = int(kwargs.pop("hours"))
         self.until_ts = int((datetime.now() - timedelta(hours=hours)).timestamp())
         print("Considering last {} hours".format(hours))
+
+        self.translator = Translator()
 
         super().__init__(*args, **kwargs)
 
@@ -65,22 +74,31 @@ class RSSSpider(scrapy.Spider):
             feed_title = feed.feed.title
 
             for entry in feed.entries:
-                post_ts = to_timestamp(entry.published_parsed)
+                post_ts = convert_to_timestamp(entry.published_parsed)
                 if post_ts < self.until_ts:
                     continue
                 content = entry.get('content')
                 if content:
                     content = content[0]['value']
 
+                title = strip_html_tags(entry.title)
+                description = strip_html_tags(entry.description)
+                content = strip_html_tags(content) if content else ""
+                translated_title = self.translator.translate(entry.title, dest='ru', src='de').text
+                translated_description = self.translator.translate(entry.description, dest='ru', src='de').text
+                translated_content = self.translator.translate(content, dest='ru', src='de').text
+
                 item = {
                     'feed_title': feed_title,
                     'link': entry.link,
-                    'title': entry.title,
-                    'description': entry.description,
-                    "pub_time": entry.published_parsed,
+                    'src_title': title,
+                    "title": translated_title,
+                    'src_description': description,
+                    'description': translated_description,
+                    "pub_time": post_ts,
                     "fetch_time": get_current_ts(),
-                    'text': content,
-                    'type': entry.get('dc_type'),
+                    "src_content": content,
+                    'text': translated_content or translated_description or translated_title,
                     "views": 0
                 }
 
