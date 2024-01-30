@@ -1,0 +1,32 @@
+{
+  "channels":
+          [
+            {
+              "name": "SZ",
+              "url": "https://rss.sueddeutsche.de/rss/Topthemen",
+              "alias": "SZ",
+              "issue": "stangenzirkel"
+            },
+            {
+              "name": "DW",
+              "url": "https://rss.dw.com/xml/rss-de-top",
+              "alias": "DW",
+              "issue": "stangenzirkel"
+            },
+            {
+              "name": "Reddit",
+              "url": "https://www.reddit.com/r/de/top/.rss",
+              "alias": "Reddit",
+              "issue": "stangenzirkel"
+            }
+          ],
+  "emojis": {
+    "other": "📰"
+  },
+  "colors": {
+    "other": "⬜"
+  },
+  "default_groups": {
+    "main": "other"
+  }
+}
